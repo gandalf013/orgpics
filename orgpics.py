@@ -15,10 +15,8 @@ CAMERA_KEY = 'Exif.Image.Model'
 def make_unique_filename(name):
     for i in itertools.count():
         test_name = '%s.%d' % (name, i)
-        if not os.path.exists(name):
-            break
-
-    return test_name
+        if not os.path.exists(test_name):
+            return test_name
 
 def process_file(filename, options):
     logging.debug('%s...' % filename)
