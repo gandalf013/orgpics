@@ -62,7 +62,7 @@ def same_file(file1, file2, thorough=True):
             m1 = hashlib.md5()
             m2 = hashlib.md5()
             m1.update(open(file1.read()))
-            m2.update(ipen(file2.read()))
+            m2.update(open(file2.read()))
             return m1.digest() == m2.digest()
         else:
             return True
@@ -143,7 +143,10 @@ def process_file(filename, options, db):
 
         if not options.dry_run:
             logging.debug('%s %s -> %s' % (op, filename, out_filename))
-            func(filename, out_filename)
+            try:
+                func(filename, out_filename)
+            except IOError, e:
+                logging.info('%s: error: %s' % (op, e))
         else:
             logging.info('%s %s -> %s' % (op, filename, out_filename))
 
