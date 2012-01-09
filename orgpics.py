@@ -7,6 +7,7 @@ import optparse
 import shutil
 import itertools
 import shlex
+import hashlib
 
 import pyexiv2
 
@@ -53,9 +54,29 @@ class CameraDB(dict):
 def real_name(path):
     return os.path.abspath(os.path.normpath(path))
 
+def same_file(file1, file2, thorough=True):
+    s1 = os.stat(file1)
+    s2 = os.stat(file2)
+    if (s1.st_size == s2.st_size):
+        if thorough:
+            m1 = hashlib.md5()
+            m2 = hashlib.md5()
+            m1.update(open(file1.read()))
+            m2.update(ipen(file2.read()))
+            return m1.digest() == m2.digest()
+        else:
+            return True
+    else:
+        return False
+
 def process_file(filename, options, db):
     logging.debug('%s...' % filename)
-    meta = pyexiv2.ImageMetadata(filename)
+    try:
+        meta = pyexiv2.ImageMetadata(filename)
+    except UnicodeDecodeError, e:
+        logging.info('bad filename: %s, not processing' % filename)
+        return
+
     try:
         meta.read()
     except IOError, e:
@@ -100,8 +121,12 @@ def process_file(filename, options, db):
         logging.info('%s and %s are the same file, nothing to do' %
                 (out_filename, filename))
         act = False
-    elif os.path.exists(out_filename) and not options.overwrite:
-        out_filename = make_unique_filename(out_filename)
+    elif os.path.exists(out_filename):
+        if same_file(out_filename, filename, thorough=False):
+            logging.info('ignoring %s, already processed' % filename)
+            return
+        if not options.overwrite:
+            out_filename = make_unique_filename(out_filename)
 
     out_dir = os.path.dirname(out_filename)
     if not os.path.exists(out_dir):
