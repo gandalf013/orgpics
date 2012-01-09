@@ -6,6 +6,7 @@ import os
 import optparse
 import shutil
 import itertools
+import shlex
 
 import pyexiv2
 
@@ -18,7 +19,41 @@ def make_unique_filename(name):
         if not os.path.exists(test_name):
             return test_name
 
-def process_file(filename, options):
+class CameraDB(dict):
+    def __init__(self, options):
+        self.options = options
+        self.filename = options.cfg_filename
+        self.read_db()
+
+    def read_db(self):
+        try:
+            fp = open(self.filename)
+        except IOError, e:
+            logging.debug('cannot read db file: %s: %s' % (self.filename, e))
+            return
+
+        for i, line in enumerate(fp):
+            data = line.strip()
+            if not data or data.startswith('#'):
+                continue
+
+            tokens = shlex.split(data, comments=True)
+            if len(tokens) == 3 and tokens[1] == '=':
+                self[tokens[0]] = tokens[2]
+            else:
+                key, eq, value = data.partition('=')
+                if eq != '=':
+                    logging.warning('%d: invalid line: %s' % (i+1, line))
+                    continue
+                value = shlex.split(value, comments=True)[0]
+                self[key] = value
+
+        fp.close()
+
+def real_name(path):
+    return os.path.abspath(os.path.normpath(path))
+
+def process_file(filename, options, db):
     logging.debug('%s...' % filename)
     meta = pyexiv2.ImageMetadata(filename)
     try:
@@ -48,6 +83,10 @@ def process_file(filename, options):
     if camera is not None:
         camera = camera.replace(' ', '_')
         camera = camera.replace(',', '.')
+        camera = camera.strip('_.')
+        if camera in db:
+            logging.info('camera %s -> %s' % (camera, db[camera]))
+            camera = db[camera]
         out_dir = os.path.join(out_dir, camera)
 
     if date_time is not None:
@@ -56,7 +95,12 @@ def process_file(filename, options):
     else:
         out_filename = os.path.join(out_dir, 'NoDate', base_name)
 
-    if os.path.exists(out_filename) and not options.overwrite:
+    act = True
+    if real_name(out_filename) == real_name(filename):
+        logging.info('%s and %s are the same file, nothing to do' %
+                (out_filename, filename))
+        act = False
+    elif os.path.exists(out_filename) and not options.overwrite:
         out_filename = make_unique_filename(out_filename)
 
     out_dir = os.path.dirname(out_filename)
@@ -64,34 +108,36 @@ def process_file(filename, options):
         logging.info('making directory: %s' % out_dir)
         os.makedirs(out_dir)
 
-    if options.copy:
-        func = shutil.copy2
-        op = 'copy'
-    else:
-        func = shutil.move
-        op = 'move'
+    if act:
+        if options.copy:
+            func = shutil.copy2
+            op = 'copy'
+        else:
+            func = shutil.move
+            op = 'move'
 
-    if not options.dry_run:
-        logging.debug('%s %s -> %s' % (op, filename, out_filename))
-        func(filename, out_filename)
-    else:
-        logging.info('%s %s -> %s' % (op, filename, out_filename))
+        if not options.dry_run:
+            logging.debug('%s %s -> %s' % (op, filename, out_filename))
+            func(filename, out_filename)
+        else:
+            logging.info('%s %s -> %s' % (op, filename, out_filename))
 
-def process_dir(dirname, options):
+def process_dir(dirname, options, db):
     for root, dirs, files in os.walk(dirname):
         for fname in files:
             filename = os.path.join(root, fname)
-            process_file(filename, options)
+            process_file(filename, options, db)
 
 def run(options, args):
+    db = CameraDB(options)
     for name in args:
         if os.path.isdir(name):
             if options.recurse:
-                process_dir(name, options)
+                process_dir(name, options, db)
             else:
                 logging.info('ignoring directory %s' % name)
         elif os.path.isfile(name):
-            process_file(name, options)
+            process_file(name, options, db)
         else:
             raise ValueError('invalid argument %s' % name)
 
@@ -124,11 +170,17 @@ def main(args=None):
             default=False, help='copy files instead of moving')
     parser.add_option('-n', '--dry-run', dest='dry_run', action='store_true',
             default=False, help='dry run')
+    parser.add_option('-F', '--cfg-file', dest='cfg_filename', default=None,
+            metavar='FILE', help='config file')
 
     options, args = parser.parse_args(args)
 
+    home = os.environ['HOME']
     if options.out_dir is None:
-        options.out_dir = os.path.join(os.environ['HOME'], 'OrganizedPics')
+        options.out_dir = os.path.join(home, 'OrganizedPics')
+
+    if options.cfg_filename is None:
+        options.cfg_filename = os.path.join(home, '.camera_db.rc')
 
     setup_logging(options.debug)
 
