@@ -93,10 +93,13 @@ def process_file(filename, options, db):
             logging.warning('%s: bad date/time: %s' % (filename, date_time))
             date_time = None
 
-    try:
-        camera = meta[CAMERA_KEY].value
-    except KeyError:
-        logging.warning('%s: no camera' % filename)
+    if options.use_camera:
+        try:
+            camera = meta[CAMERA_KEY].value
+        except KeyError:
+            logging.warning('%s: no camera' % filename)
+            camera = None
+    else:
         camera = None
 
     base_name = os.path.basename(filename)
@@ -181,7 +184,7 @@ def setup_logging(debug=False):
     logging.getLogger().setLevel(lvl)
 
 def main(args=None):
-    usage = 'usage: %prog [options]'
+    usage = 'usage: %prog [options] <path(s)>'
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('-D', '--debug', dest='debug', action='store_true',
             default=False, help='debug')
@@ -200,6 +203,9 @@ def main(args=None):
             default=False, help='dry run')
     parser.add_option('-F', '--cfg-file', dest='cfg_filename', default=None,
             metavar='FILE', help='config file')
+    parser.add_option('-C', '--no-camera', dest='use_camera',
+            action='store_false', default=True,
+            help="don't create separate directories for each camera")
 
     options, args = parser.parse_args(args)
 
