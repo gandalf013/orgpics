@@ -15,7 +15,7 @@ DATETIME_KEYS = (
     'Exif.Photo.DateTimeOriginal',
     'Exif.Image.DateTimeOriginal',
     'Exif.Photo.DateTimeDigitized',
-    'Exif.Image.DateTime'
+    # 'Exif.Image.DateTime'
 )
 
 CAMERA_KEY = 'Exif.Image.Model'
@@ -86,7 +86,7 @@ def process_file(filename, options, db):
     try:
         meta.read()
     except IOError, e:
-        logging.warning('error processing %s: %s' % (filename, e))
+        # logging.warning('error processing %s: %s' % (filename, e))
         return
 
     for key in DATETIME_KEYS:
