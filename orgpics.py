@@ -11,7 +11,13 @@ import hashlib
 
 import pyexiv2
 
-DATETIME_KEY = 'Exif.Image.DateTime'
+DATETIME_KEYS = (
+    'Exif.Photo.DateTimeOriginal',
+    'Exif.Image.DateTimeOriginal',
+    'Exif.Photo.DateTimeDigitized',
+    'Exif.Image.DateTime'
+)
+
 CAMERA_KEY = 'Exif.Image.Model'
 
 def make_unique_filename(name):
@@ -83,15 +89,18 @@ def process_file(filename, options, db):
         logging.warning('error processing %s: %s' % (filename, e))
         return
 
-    try:
-        date_time =  meta[DATETIME_KEY].value
-    except KeyError:
+    for key in DATETIME_KEYS:
+        try:
+            date_time =  meta[key].value
+            if isinstance(date_time, str):
+                logging.warning('%s: bad date/time: %s' % (filename, date_time))
+            else:
+                break
+        except KeyError:
+            continue
+    else:
         logging.warning('%s: no date' % filename)
         date_time = None
-    else:
-        if isinstance(date_time, str):
-            logging.warning('%s: bad date/time: %s' % (filename, date_time))
-            date_time = None
 
     if options.use_camera:
         try:
