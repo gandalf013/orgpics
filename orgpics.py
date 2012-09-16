@@ -67,8 +67,8 @@ def same_file(file1, file2, thorough=True):
         if thorough:
             m1 = hashlib.md5()
             m2 = hashlib.md5()
-            m1.update(open(file1.read()))
-            m2.update(open(file2.read()))
+            m1.update(open(file1).read())
+            m2.update(open(file2).read())
             return m1.digest() == m2.digest()
         else:
             return True
