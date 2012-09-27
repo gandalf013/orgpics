@@ -199,7 +199,7 @@ def main(args=None):
             default=False, help='debug')
     parser.add_option('-d', '--out-dir', dest='out_dir', default=None,
             metavar='DIR', help='output directory=DIR')
-    parser.add_option('-f', '--fmt', dest='fmt', default='%Y/%m/%d',
+    parser.add_option('-f', '--fmt', dest='fmt', default='%Y-%m-%d',
             metavar='FMT', help='strftime() format for output directory')
     parser.add_option('-r', '--recurse', dest='recurse', action='store_true',
             default=False, help='recurse directories')
