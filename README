@@ -1,1 +1,7 @@
-initial
+Small script that organizes pictures in a folder into date-based folders.
+
+It is somewhat smart about ignoring duplicates (file name and/or size, as well
+as md5 hash if desired).
+
+The destination folder is YYYY-MM-DD by default, but it can be changed with
+a command-line option.

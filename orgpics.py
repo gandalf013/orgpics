@@ -54,13 +54,13 @@ def process_file(filename, options):
     logging.debug('%s...', filename)
     try:
         meta = pyexiv2.ImageMetadata(filename)
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError as e:
         logging.info('bad filename: %s, not processing', filename)
         return
 
     try:
         meta.read()
-    except IOError, e:
+    except IOError as e:
         # logging.warning('error processing %s: %s', filename, e)
         return
 
@@ -120,7 +120,7 @@ def process_file(filename, options):
             logging.debug('%s %s -> %s', op, filename, out_filename)
             try:
                 func(filename, out_filename)
-            except IOError, e:
+            except IOError as e:
                 logging.info('%s: error: %s', op, e)
         else:
             logging.info('%s %s -> %s', op, filename, out_filename)
